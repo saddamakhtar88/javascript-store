@@ -1,4 +1,4 @@
-import { isObject } from "../type-guards/is-object";
+import { isObject } from "../type-guards";
 
 export function validateState(state: unknown) {
   if (!isObject(state)) {
