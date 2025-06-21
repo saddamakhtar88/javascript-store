@@ -1,23 +1,28 @@
-import { Listener } from "./utils/types";
-import { Action } from "./utils/types";
+import { Action, Listener } from "./types";
+import { deepFreeze } from "./utils/deep-freeze";
+import { validateState } from "./utils/validate-state";
 
-export function createStore<T>(initialState: T) {
-  let currentState: T = initialState;
+export function createStore<T extends object>(initialState: T) {
+  validateState(initialState);
+
+  let state: T = initialState;
   const listeners = new Set<Listener<T>>();
 
   return {
     getState() {
-      return currentState;
+      return state;
     },
 
     setState(newState: T) {
-      currentState = newState;
-      listeners.forEach((listener) => listener(currentState));
+      validateState(newState);
+      state = deepFreeze(newState);
+      listeners.forEach((listener) => listener(state));
     },
 
-    setPartialState(newState: Partial<T>) {
-      currentState = { ...currentState, ...newState };
-      listeners.forEach((listener) => listener(currentState));
+    setPartialState(partialState: Partial<T>) {
+      validateState(partialState);
+      state = deepFreeze({ ...state, ...partialState });
+      listeners.forEach((listener) => listener(state));
     },
 
     subscribe(listener: Listener<T>) {
@@ -26,8 +31,8 @@ export function createStore<T>(initialState: T) {
     },
 
     dispatch(action: Action<T>) {
-      const state = action(currentState);
-      this.setState(state);
+      const _state = action(state);
+      this.setState(_state);
     },
   };
 }
