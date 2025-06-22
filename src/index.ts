@@ -1,2 +1,2 @@
-export * from "./lib/core/createStore";
-export * from "./lib/with-reducer/createStoreWithReducer";
+export * from "./core/createStore";
+export * from "./with-reducer/createStoreWithReducer";
