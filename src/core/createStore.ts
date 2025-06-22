@@ -1,5 +1,3 @@
-import { isFunction } from "./type-guards";
-import { Action } from "./types";
 import { createNotifier, freeze, validateState } from "./utils";
 
 export function createStore<T extends object>(initialState: T) {
@@ -21,20 +19,10 @@ export function createStore<T extends object>(initialState: T) {
     notifier.notify(state);
   };
 
-  const dispatch = (action: Action<T>) => {
-    if (!isFunction(action)) {
-      throw new Error("Action must be a function");
-    }
-    const _state = action(state);
-    setState(_state);
-  };
-
   return {
     getState,
     setState,
     setPartialState,
-
-    dispatch,
     subscribe: notifier.subscribe,
   };
 }
