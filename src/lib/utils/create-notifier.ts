@@ -1,5 +1,4 @@
 import { isFunction } from "../type-guards";
-import { Selector } from "../types";
 import { Subscription } from "../types";
 import { deepEqual } from "./deep-equal";
 
