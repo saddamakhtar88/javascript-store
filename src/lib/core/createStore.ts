@@ -1,7 +1,6 @@
 import { isFunction } from "./type-guards";
 import { Action } from "./types";
 import { createNotifier, freeze, validateState } from "./utils";
-import { Subscription } from "./types";
 
 export function createStore<T extends object>(initialState: T) {
   validateState(initialState);
@@ -30,24 +29,12 @@ export function createStore<T extends object>(initialState: T) {
     setState(_state);
   };
 
-  const subscribe = (subscription: Subscription<T, unknown>) => {
-    if (!isFunction(subscription.listener)) {
-      throw new Error("Listener must be a function");
-    }
-
-    if (subscription.selector && !isFunction(subscription.selector)) {
-      throw new Error("Selector must be a function");
-    }
-
-    return notifier.subscribe(subscription);
-  };
-
   return {
     getState,
     setState,
     setPartialState,
 
     dispatch,
-    subscribe,
+    subscribe: notifier.subscribe,
   };
 }

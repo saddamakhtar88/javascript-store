@@ -1,14 +1,30 @@
 import { isFunction } from "../type-guards";
-import { Subscription } from "../types";
+import { Listener, Subscription } from "../types";
 import { deepEqual } from "./deep-equal";
 
 export function createNotifier<T>() {
   let latestState: T;
   const subscriptions = new Set<Subscription<T, unknown>>();
 
-  const subscribe = (subscription: Subscription<T, unknown>) => {
-    subscriptions.add(subscription);
-    return () => unsubscribe(subscription);
+  const subscribe = (
+    subscription: Subscription<T, unknown> | Listener<unknown>
+  ) => {
+    let _subscription = subscription as Subscription<T, unknown>;
+
+    if (isFunction(subscription)) {
+      _subscription = { listener: subscription };
+    }
+
+    if (!isFunction(_subscription.listener)) {
+      throw new Error("Listener must be a function");
+    }
+
+    if (_subscription.selector && !isFunction(_subscription.selector)) {
+      throw new Error("Selector must be a function");
+    }
+
+    subscriptions.add(_subscription);
+    return () => unsubscribe(_subscription as Subscription<T, unknown>);
   };
 
   const unsubscribe = (subscription: Subscription<T, unknown>) => {
