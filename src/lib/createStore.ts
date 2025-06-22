@@ -1,6 +1,6 @@
 import { isFunction } from "./type-guards";
 import { Action } from "./types";
-import { createNotifier, deepFreeze, validateState } from "./utils";
+import { createNotifier, freeze, validateState } from "./utils";
 import { Subscription } from "./types";
 
 export function createStore<T extends object>(initialState: T) {
@@ -12,13 +12,13 @@ export function createStore<T extends object>(initialState: T) {
   const getState = () => state;
   const setState = (newState: T) => {
     validateState(newState);
-    state = deepFreeze(newState);
+    state = freeze(newState);
     notifier.notify(state);
   };
 
   const setPartialState = (partialState: Partial<T>) => {
     validateState(partialState);
-    state = deepFreeze({ ...state, ...partialState });
+    state = freeze({ ...state, ...partialState });
     notifier.notify(state);
   };
 
