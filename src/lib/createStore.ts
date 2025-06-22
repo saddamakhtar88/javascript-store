@@ -1,29 +1,25 @@
 import { isFunction } from "./type-guards";
-import { Action, Listener } from "./types";
-import { deepFreeze } from "./utils/deep-freeze";
-import { validateState } from "./utils/validate-state";
+import { Action } from "./types";
+import { createNotifier, deepFreeze, validateState } from "./utils";
+import { Subscription } from "./types";
 
 export function createStore<T extends object>(initialState: T) {
   validateState(initialState);
 
   let state: T = initialState;
-  const listeners = new Set<Listener<T>>();
+  const notifier = createNotifier<T>();
 
   const getState = () => state;
   const setState = (newState: T) => {
     validateState(newState);
     state = deepFreeze(newState);
-    notify();
+    notifier.notify(state);
   };
 
   const setPartialState = (partialState: Partial<T>) => {
     validateState(partialState);
     state = deepFreeze({ ...state, ...partialState });
-    notify();
-  };
-
-  const notify = () => {
-    listeners.forEach((listener) => listener(state));
+    notifier.notify(state);
   };
 
   const dispatch = (action: Action<T>) => {
@@ -34,12 +30,16 @@ export function createStore<T extends object>(initialState: T) {
     setState(_state);
   };
 
-  const subscribe = (listener: Listener<T>) => {
-    if (!isFunction(listener)) {
+  const subscribe = (subscription: Subscription<T, unknown>) => {
+    if (!isFunction(subscription.listener)) {
       throw new Error("Listener must be a function");
     }
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+
+    if (subscription.selector && !isFunction(subscription.selector)) {
+      throw new Error("Selector must be a function");
+    }
+
+    return notifier.subscribe(subscription);
   };
 
   return {
