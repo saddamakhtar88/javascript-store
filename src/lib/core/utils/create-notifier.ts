@@ -25,7 +25,7 @@ export function createNotifier<T>() {
         if (!deepEqual(lastvalue, value)) {
           subscription.listener(value);
         }
-      } else {
+      } else if (state !== latestState) {
         subscription.listener(state);
       }
     });
