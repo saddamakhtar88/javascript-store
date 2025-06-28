@@ -7,17 +7,17 @@ export function createStoreWithReducer<T extends object>(options: {
 }) {
   const { initialState, reducer } = options;
 
-  const store = createStore<T>(initialState);
+  const { setState, getState, subscribe } = createStore<T>(initialState);
 
   const dispatch = (action: Action) => {
-    const currentState = store.getState();
+    const currentState = getState();
     const newState = reducer(action, currentState);
-    store.setState(newState);
+    setState(newState);
   };
 
   return {
-    getState: store.getState,
+    getState,
     dispatch,
-    subscribe: store.subscribe,
+    subscribe,
   };
 }
