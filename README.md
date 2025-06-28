@@ -6,6 +6,7 @@ A lightweight, vanilla TypeScript state management solution with:
 - ✅ Subscription system with selectors
 - ✅ Core and reducer-based APIs
 - ✅ Clean separation of concerns
+- ✅ Built-in effects system with async support
 
 ---
 
@@ -15,6 +16,7 @@ A lightweight, vanilla TypeScript state management solution with:
 - 🔹 **Immutable state updates** using `freeze`
 - 🔹 **Subscription with selector support**
 - 🔹 **Reducer-based store** for predictable action handling
+- 🔹 **Async effects system** with optional filtering
 - 🔹 **Fully TypeScript-typed**
 - 🔹 Clean, composable architecture
 
@@ -43,16 +45,10 @@ const store = createStore({
   name: "Counter",
 });
 
-// Get current state
-console.log(store.getState()); // { count: 0, name: 'Counter' }
-
-// Update entire state
+console.log(store.getState());
 store.setState({ count: 5, name: "Updated" });
-
-// Update part of the state
 store.setPartialState({ count: 10 });
 
-// Subscribe to state changes
 const unsubscribe = store.subscribe({
   selector: (state) => state.count,
   listener: (count) => {
@@ -60,7 +56,6 @@ const unsubscribe = store.subscribe({
   },
 });
 
-// Later, unsubscribe
 unsubscribe();
 ```
 
@@ -74,13 +69,8 @@ The **reducer store** adds a dispatch system similar to Redux.
 
 ```ts
 import { createStoreWithReducer } from "./reducer/createStoreWithReducer";
-import { Action } from "./types";
 
-// Action type
-type CounterAction = Action<number>;
-
-// Reducer function
-const counterReducer = (action: CounterAction, state: { count: number }) => {
+const counterReducer = (action, state) => {
   switch (action.type) {
     case "INCREMENT":
       return { ...state, count: state.count + 1 };
@@ -91,25 +81,58 @@ const counterReducer = (action: CounterAction, state: { count: number }) => {
   }
 };
 
-// Create reducer-based store
 const store = createStoreWithReducer({
   initialState: { count: 0 },
   reducer: counterReducer,
 });
 
-// Subscribe to a slice of the state
-const unsubscribe = store.subscribe({
+store.subscribe({
   selector: (state) => state.count,
   listener: (count) => console.log("Count updated:", count),
 });
 
-// Dispatch actions
-store.dispatch({ type: "INCREMENT" }); // Count updated: 1
-store.dispatch({ type: "INCREMENT" }); // Count updated: 2
-store.dispatch({ type: "DECREMENT" }); // Count updated: 1
+store.dispatch({ type: "INCREMENT" });
+```
 
-// Unsubscribe when done
-unsubscribe();
+---
+
+## 🔀 Effects API
+
+Use `createStoreWithReducerAndEffects()` for async workflows.
+
+### Example with Async Effect:
+
+```ts
+import {
+  createStoreWithReducerAndEffects,
+  createEffect,
+} from "javascript-store";
+
+const store = createStoreWithReducerAndEffects({
+  initialState: { loading: false, data: null },
+  reducer: (action, state) => {
+    switch (action.type) {
+      case "LOAD_DATA":
+        return { ...state, loading: true };
+      case "SET_DATA":
+        return { ...state, loading: false, data: action.payload };
+      default:
+        return state;
+    }
+  },
+  effects: [
+    createEffect(
+      async (state, action, dispatch) => {
+        const res = await fetch("/api/data");
+        const data = await res.json();
+        dispatch({ type: "SET_DATA", payload: data });
+      },
+      (action) => action.type === "LOAD_DATA"
+    ),
+  ],
+});
+
+store.dispatch({ type: "LOAD_DATA" });
 ```
 
 ---
@@ -118,38 +141,43 @@ unsubscribe();
 
 ### Core Store
 
-| Method                          | Description                                              |
-| ------------------------------- | -------------------------------------------------------- |
-| `getState()`                    | Returns the current state                                |
-| `setState(newState)`            | Replaces the entire state                                |
-| `setPartialState(partialState)` | Partially updates the state                              |
-| `subscribe(subscription)`       | Subscribe to state changes, returns unsubscribe function |
-
----
+| Method                          | Description                 |
+| ------------------------------- | --------------------------- |
+| `getState()`                    | Returns the current state   |
+| `setState(newState)`            | Replaces the entire state   |
+| `setPartialState(partialState)` | Partially updates the state |
+| `subscribe(subscription)`       | Subscribes to state changes |
 
 ### Reducer Store
 
-| Method                    | Description                                              |
-| ------------------------- | -------------------------------------------------------- |
-| `getState()`              | Returns the current state                                |
-| `dispatch(action)`        | Dispatches an action to the reducer                      |
-| `subscribe(subscription)` | Subscribe to state changes, returns unsubscribe function |
+| Method                    | Description                         |
+| ------------------------- | ----------------------------------- |
+| `dispatch(action)`        | Dispatches an action to the reducer |
+| `getState()`              | Returns the current state           |
+| `subscribe(subscription)` | Subscribes to state changes         |
+
+### With Effects
+
+| Method                    | Description                                      |
+| ------------------------- | ------------------------------------------------ |
+| `createEffect()`          | Wraps an effect with an optional action filter   |
+| `dispatch(action)`        | Dispatches an action and runs applicable effects |
+| `subscribe(subscription)` | Subscribes to state changes                      |
 
 ---
 
 ## 🛡️ State Immutability
 
-All state updates are deep-frozen to ensure **external immutability.**
-Any direct mutations to the state object outside the store will throw an error.
+All state updates are deep-frozen to ensure **external immutability**. Direct mutations outside the store will throw errors.
 
 ---
 
 ## 💡 Key Design Principles
 
-- **Separation of Concerns:** Core store handles state only, reducer store handles actions.
-- **Composable:** Easy to build effects, middleware, or other extensions later.
-- **Type Safety:** Full TypeScript support across all APIs.
-- **Selector-Based Subscription:** Efficient updates for slices of the state.
+- **Separation of Concerns** between state, reducer, and effects
+- **Composable** and minimal core
+- **Typed APIs** throughout the store
+- **Selector-driven Subscriptions**
 
 ---
 
@@ -159,8 +187,7 @@ Any direct mutations to the state object outside the store will throw an error.
 
 ## 👏 Contributions
 
-If you'd like to contribute, feel free to submit an issue or a pull request.
-This project is designed to be simple, scalable, and extensible.
+Feel free to open issues, request features, or submit pull requests.
 
 ---
 
