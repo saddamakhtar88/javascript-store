@@ -5,8 +5,8 @@ A lightweight, vanilla TypeScript state management solution with:
 - ✅ Immutable state
 - ✅ Subscription system with selectors
 - ✅ Core and reducer-based APIs
-- ✅ Clean separation of concerns
 - ✅ Built-in effects system with async support
+- ✅ Support for effect cancellation using AbortController
 
 ---
 
@@ -16,7 +16,7 @@ A lightweight, vanilla TypeScript state management solution with:
 - 🔹 **Immutable state updates** using `freeze`
 - 🔹 **Subscription with selector support**
 - 🔹 **Reducer-based store** for predictable action handling
-- 🔹 **Async effects system** with optional filtering
+- 🔹 **Async effects system** with optional filtering and cancellation
 - 🔹 **Fully TypeScript-typed**
 - 🔹 Clean, composable architecture
 
@@ -98,7 +98,7 @@ store.dispatch({ type: "INCREMENT" });
 
 ## 🔀 Effects API
 
-Use `createStoreWithReducerAndEffects()` for async workflows.
+Use `createStoreWithReducerAndEffects()` for async workflows with cancellation support.
 
 ### Example with Async Effect:
 
@@ -122,12 +122,13 @@ const store = createStoreWithReducerAndEffects({
   },
   effects: [
     createEffect(
-      async (state, action, dispatch) => {
-        const res = await fetch("/api/data");
+      async (state, action, dispatch, { signal }) => {
+        const res = await fetch("/api/data", { signal });
         const data = await res.json();
         dispatch({ type: "SET_DATA", payload: data });
       },
-      (action) => action.type === "LOAD_DATA"
+      (action) => action.type === "LOAD_DATA",
+      { cancelPrevious: true }
     ),
   ],
 });
@@ -160,7 +161,7 @@ store.dispatch({ type: "LOAD_DATA" });
 
 | Method                    | Description                                      |
 | ------------------------- | ------------------------------------------------ |
-| `createEffect()`          | Wraps an effect with an optional action filter   |
+| `createEffect()`          | Wraps an effect with optional filter and options |
 | `dispatch(action)`        | Dispatches an action and runs applicable effects |
 | `subscribe(subscription)` | Subscribes to state changes                      |
 
@@ -178,12 +179,17 @@ All state updates are deep-frozen to ensure **external immutability**. Direct mu
 - **Composable** and minimal core
 - **Typed APIs** throughout the store
 - **Selector-driven Subscriptions**
+- **Optional and cancellable side-effects** via `AbortController`
 
 ---
 
 ## 🔮 Roadmap
 
-- ***
+- Effect middleware/composition
+- Built-in devtools integration
+- Effect status tracking
+
+---
 
 ## 👏 Contributions
 
