@@ -1,9 +1,9 @@
 import { Action } from "../../with-reducer/types";
 import { EffectContext } from "./effect-context";
 
-export type Effect<T> = (
+export type Effect<T, A> = (
   state: T,
-  action: Action,
-  dispatch: (action: Action) => void,
+  action: A,
+  dispatch: (action: A) => void,
   context: EffectContext
 ) => void | Promise<void>;

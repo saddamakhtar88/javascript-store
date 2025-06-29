@@ -1,4 +1,8 @@
-export type Action<T = unknown> = {
-  type: string;
-  payload?: T;
-};
+export type Action<T extends string = string, P = undefined> = [P] extends [
+  undefined
+]
+  ? { type: T }
+  : {
+      type: T;
+      payload: P;
+    };

@@ -4,9 +4,9 @@ A lightweight, vanilla TypeScript state management solution with:
 
 - ✅ Immutable state
 - ✅ Subscription system with selectors
-- ✅ Core and reducer-based APIs
-- ✅ Built-in effects system with async support
-- ✅ Support for effect cancellation using AbortController
+- ✅ Core, reducer, and effects-based APIs
+- ✅ Typed action creators
+- ✅ Clean separation of concerns
 
 ---
 
@@ -16,7 +16,8 @@ A lightweight, vanilla TypeScript state management solution with:
 - 🔹 **Immutable state updates** using `freeze`
 - 🔹 **Subscription with selector support**
 - 🔹 **Reducer-based store** for predictable action handling
-- 🔹 **Async effects system** with optional filtering and cancellation
+- 🔹 **Typed async effects system** with cancellation and filtering
+- 🔹 **Typed action creators** with or without payloads
 - 🔹 **Fully TypeScript-typed**
 - 🔹 Clean, composable architecture
 
@@ -38,7 +39,7 @@ The **core store** is a simple state container with direct state setters.
 ### Example:
 
 ```ts
-import { createStore } from "./core/createStore";
+import { createStore } from "javascript-store";
 
 const store = createStore({
   count: 0,
@@ -68,47 +69,57 @@ The **reducer store** adds a dispatch system similar to Redux.
 ### Example:
 
 ```ts
-import { createStoreWithReducer } from "./reducer/createStoreWithReducer";
+import { createAction, createStoreWithReducer } from "javascript-store";
 
-const counterReducer = (action, state) => {
-  switch (action.type) {
-    case "INCREMENT":
-      return { ...state, count: state.count + 1 };
-    case "DECREMENT":
-      return { ...state, count: state.count - 1 };
-    default:
-      return state;
-  }
-};
+const increment = createAction("INCREMENT");
+const decrement = createAction("DECREMENT");
 
-const store = createStoreWithReducer({
+type CounterAction =
+  | ReturnType<typeof increment>
+  | ReturnType<typeof decrement>;
+
+const store = createStoreWithReducer<{ count: number }, CounterAction>({
   initialState: { count: 0 },
-  reducer: counterReducer,
+  reducer: (action, state) => {
+    switch (action.type) {
+      case "INCREMENT":
+        return { ...state, count: state.count + 1 };
+      case "DECREMENT":
+        return { ...state, count: state.count - 1 };
+      default:
+        return state;
+    }
+  },
 });
 
-store.subscribe({
-  selector: (state) => state.count,
-  listener: (count) => console.log("Count updated:", count),
-});
-
-store.dispatch({ type: "INCREMENT" });
+store.dispatch(increment());
+store.dispatch(decrement());
 ```
 
 ---
 
 ## 🔀 Effects API
 
-Use `createStoreWithReducerAndEffects()` for async workflows with cancellation support.
+Use `createStoreWithReducerAndEffects()` for async workflows, cancellation, and filtering.
 
 ### Example with Async Effect:
 
 ```ts
 import {
-  createStoreWithReducerAndEffects,
+  createAction,
   createEffect,
+  createStoreWithReducerAndEffects,
 } from "javascript-store";
 
-const store = createStoreWithReducerAndEffects({
+const loadData = createAction("LOAD_DATA");
+const setData = createAction("SET_DATA");
+
+type Actions = ReturnType<typeof loadData> | ReturnType<typeof setData>;
+
+const store = createStoreWithReducerAndEffects<
+  { loading: boolean; data: any },
+  Actions
+>({
   initialState: { loading: false, data: null },
   reducer: (action, state) => {
     switch (action.type) {
@@ -122,18 +133,53 @@ const store = createStoreWithReducerAndEffects({
   },
   effects: [
     createEffect(
-      async (state, action, dispatch, { signal }) => {
-        const res = await fetch("/api/data", { signal });
+      async (state, action, dispatch, ctx) => {
+        const res = await fetch("/api/data", { signal: ctx.signal });
         const data = await res.json();
-        dispatch({ type: "SET_DATA", payload: data });
+        dispatch(setData(data));
       },
-      (action) => action.type === "LOAD_DATA",
-      { cancelPrevious: true }
+      {
+        filter: (action) => action.type === "LOAD_DATA",
+        cancelPrevious: true,
+      }
     ),
   ],
 });
 
-store.dispatch({ type: "LOAD_DATA" });
+store.dispatch(loadData());
+```
+
+---
+
+## 🔧 Utility APIs
+
+### `createAction`
+
+Typed action creator:
+
+```ts
+const simple = createAction("SIMPLE");
+simple(); // { type: "SIMPLE" }
+
+const withPayload = createAction("WITH_PAYLOAD")<number>;
+withPayload(42); // { type: "WITH_PAYLOAD", payload: 42 }
+```
+
+### `createEffect`
+
+Typed effect with options:
+
+```ts
+const myEffect = createEffect(
+  (state, action, dispatch, ctx) => {
+    // logic
+  },
+  {
+    filter: (action) => action.type === "MY_ACTION",
+    cancelPrevious: true,
+    id: "unique-effect-id",
+  }
+);
 ```
 
 ---
@@ -159,11 +205,11 @@ store.dispatch({ type: "LOAD_DATA" });
 
 ### With Effects
 
-| Method                    | Description                                      |
-| ------------------------- | ------------------------------------------------ |
-| `createEffect()`          | Wraps an effect with optional filter and options |
-| `dispatch(action)`        | Dispatches an action and runs applicable effects |
-| `subscribe(subscription)` | Subscribes to state changes                      |
+| Method                    | Description                                     |
+| ------------------------- | ----------------------------------------------- |
+| `createEffect()`          | Wraps an effect with optional config and filter |
+| `dispatch(action)`        | Dispatches an action and runs matching effects  |
+| `subscribe(subscription)` | Subscribes to state changes                     |
 
 ---
 
@@ -179,15 +225,14 @@ All state updates are deep-frozen to ensure **external immutability**. Direct mu
 - **Composable** and minimal core
 - **Typed APIs** throughout the store
 - **Selector-driven Subscriptions**
-- **Optional and cancellable side-effects** via `AbortController`
 
 ---
 
 ## 🔮 Roadmap
 
-- Effect middleware/composition
-- Built-in devtools integration
-- Effect status tracking
+- Devtools support
+- Middleware support
+- Persistence layer
 
 ---
 
